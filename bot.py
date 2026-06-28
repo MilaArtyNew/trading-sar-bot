@@ -55,6 +55,8 @@ log = logging.getLogger(__name__)
 SOL_SYMBOL = "SOL-USDT"
 EMA_TF = "1h"
 EMA_CANDLES = 220  # need 100+ for EMA100 warmup
+SAR_ALT_TF_ENTRY   = "15m"  # SAR ETH/SOL: higher TF to reduce noise vs 5m
+SAR_ALT_TF_CONFIRM = "1h"
 
 _data = Path(DATA_DIR)
 _data.mkdir(parents=True, exist_ok=True)
@@ -686,13 +688,14 @@ async def sar_sol_loop(app: Application) -> None:
 async def _sar_live_tick(
     app: Application, state: dict, *,
     symbol: str, state_path: Path, strategy_name: str, callback_prefix: str, paper: bool,
+    tf_entry: str = TF_ENTRY, tf_confirm: str = TF_CONFIRM,
 ) -> None:
     if state.get("paused"):
         return
     s = state["state"]
 
     if s == MONITORING:
-        candles_5m = await bingx.get_klines(symbol, TF_ENTRY, CANDLES_LIMIT)
+        candles_5m = await bingx.get_klines(symbol, tf_entry, CANDLES_LIMIT)
         if len(candles_5m) < 3:
             return
 
@@ -706,7 +709,7 @@ async def _sar_live_tick(
         state["last_candle_ts"] = last_ts
         save_state(state_path, state)
 
-        candles_15m = await bingx.get_klines(symbol, TF_CONFIRM, CANDLES_LIMIT)
+        candles_15m = await bingx.get_klines(symbol, tf_confirm, CANDLES_LIMIT)
         if len(candles_15m) < 3:
             return
 
@@ -742,7 +745,7 @@ async def _sar_live_tick(
         pos = state.get("position", {})
         close_reason, actual_exit = None, None
         if paper:
-            candles = await bingx.get_klines(symbol, TF_ENTRY, 10)
+            candles = await bingx.get_klines(symbol, tf_entry, 10)
             close_reason = paper_check_closed(pos, candles[:-1])
         else:
             if await is_position_closed(symbol):
@@ -765,6 +768,7 @@ async def sar_eth_tick(app: Application, state: dict) -> None:
         app, state,
         symbol=ETH_SAR_SYMBOL, state_path=STATE_SAR_ETH_LIVE, strategy_name="SAR_ETH",
         callback_prefix="sar_eth", paper=False,
+        tf_entry=SAR_ALT_TF_ENTRY, tf_confirm=SAR_ALT_TF_CONFIRM,
     )
 
 
@@ -781,6 +785,7 @@ async def sar_sol_tick(app: Application, state: dict) -> None:
         app, state,
         symbol=SOL_SAR_SYMBOL, state_path=STATE_SAR_SOL_LIVE, strategy_name="SAR_SOL",
         callback_prefix="sar_sol", paper=False,
+        tf_entry=SAR_ALT_TF_ENTRY, tf_confirm=SAR_ALT_TF_CONFIRM,
     )
 
 
@@ -1072,9 +1077,9 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     # ── SAR + EMA ─────────────────────────────────────────────────────────────
     strategies = [
         ("SAR",     STATE_SAR,          SYMBOL,         TF_ENTRY),
-        ("SAR ETH", STATE_SAR_ETH_LIVE, ETH_SAR_SYMBOL, TF_ENTRY),
+        ("SAR ETH", STATE_SAR_ETH_LIVE, ETH_SAR_SYMBOL, SAR_ALT_TF_ENTRY),
         ("SAR BTC", STATE_SAR_BTC_LIVE, BTC_SAR_SYMBOL, TF_ENTRY),
-        ("SAR SOL", STATE_SAR_SOL_LIVE, SOL_SAR_SYMBOL, TF_ENTRY),
+        ("SAR SOL", STATE_SAR_SOL_LIVE, SOL_SAR_SYMBOL, SAR_ALT_TF_ENTRY),
         ("EMA",     STATE_EMA,          SOL_SYMBOL,     EMA_TF),
         ("EMA BTC", STATE_EMA_BTC_LIVE, BTC_EMA_SYMBOL, EMA_TF),
         ("EMA ETH", STATE_EMA_ETH_LIVE, ETH_EMA_SYMBOL, EMA_TF),
@@ -1286,7 +1291,7 @@ async def start_sar_eth_command(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def close_sar_eth_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     state = load_state(STATE_SAR_ETH_LIVE)
-    await _manual_close(update, state, STATE_SAR_ETH_LIVE, "SAR_ETH", ETH_SAR_SYMBOL, TF_ENTRY, paper=False)
+    await _manual_close(update, state, STATE_SAR_ETH_LIVE, "SAR_ETH", ETH_SAR_SYMBOL, SAR_ALT_TF_ENTRY, paper=False)
 
 
 # ── EMA control ───────────────────────────────────────────────────────────────
@@ -1349,7 +1354,7 @@ async def start_sar_sol_command(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def close_sar_sol_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     state = load_state(STATE_SAR_SOL_LIVE)
-    await _manual_close(update, state, STATE_SAR_SOL_LIVE, "SAR_SOL", SOL_SAR_SYMBOL, TF_ENTRY, paper=False)
+    await _manual_close(update, state, STATE_SAR_SOL_LIVE, "SAR_SOL", SOL_SAR_SYMBOL, SAR_ALT_TF_ENTRY, paper=False)
 
 
 # ── EMA BTC control (LIVE) ────────────────────────────────────────────────────
