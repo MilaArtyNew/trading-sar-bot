@@ -181,6 +181,41 @@ def read_trade_stats(mode_filter: str) -> dict:
     return stats
 
 
+def read_trade_stats_since(mode_filter: str, cutoff: datetime) -> dict:
+    """Returns {strategy: {wins, losses, pnl}} filtered by mode, trades at/after cutoff (UTC)."""
+    stats: dict = {}
+    if not TRADE_LOG.exists():
+        return stats
+    with open(TRADE_LOG, newline="") as f:
+        for row in csv.DictReader(f):
+            if row.get("mode", "").upper() != mode_filter.upper():
+                continue
+            try:
+                ts = datetime.fromisoformat(row.get("timestamp", ""))
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=timezone.utc)
+                if ts < cutoff:
+                    continue
+            except Exception:
+                continue
+            strat = row.get("strategy", "?")
+            if strat not in stats:
+                stats[strat] = {"wins": 0, "losses": 0, "pnl": 0.0}
+            result = row.get("result", "")
+            try:
+                pnl = float(result.split()[-1].replace("$", ""))
+            except Exception:
+                pnl = 0.0
+            if "WIN" in result:
+                stats[strat]["wins"] += 1
+            else:
+                stats[strat]["losses"] += 1
+            stats[strat]["pnl"] += pnl
+    for s in stats:
+        stats[s]["pnl"] = round(stats[s]["pnl"], 2)
+    return stats
+
+
 def read_trade_stats_24h(mode_filter: str) -> dict:
     """Returns {strategy: {wins, losses, pnl}} for last 24h filtered by mode."""
     cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
@@ -1416,17 +1451,20 @@ async def trades_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 # ── Morning report (daily 06:00 UTC = 09:00 Israel) ──────────────────────────
 
+SAR_ETH_SOL_FIX = datetime(2026, 6, 28, tzinfo=timezone.utc)  # switch to 15m/1h timeframe
+
 def _build_morning_report() -> str:
     """Build SAR/EMA daily stats block from trades.csv."""
     live_all  = read_trade_stats("LIVE")
     live_24h  = read_trade_stats_24h("LIVE")
+    live_post = read_trade_stats_since("LIVE", SAR_ETH_SOL_FIX)
     paper_all = read_trade_stats("PAPER")
     paper_24h = read_trade_stats_24h("PAPER")
     has_active_paper = bool(PAPER_SAR_CONFIGS or PAPER_EMA_CONFIGS)
 
     _wr_e = lambda wr: "🟢" if wr >= 60 else ("🟡" if wr >= 40 else "🔴")
 
-    def _fmt(name: str, mode: str, s_all: dict, s_24h: dict, state_path) -> list:
+    def _fmt(name: str, mode: str, s_all: dict, s_24h: dict, state_path, post: tuple = None) -> list:
         n_all = s_all["wins"] + s_all["losses"]
         n_24h = s_24h["wins"] + s_24h["losses"]
         wr_all = round(s_all["wins"] / n_all * 100) if n_all else 0
@@ -1449,6 +1487,16 @@ def _build_morning_report() -> str:
             )
         else:
             result.append("total: no trades")
+        if post:
+            lbl, s_post = post
+            n_post = s_post["wins"] + s_post["losses"]
+            if n_post > 0:
+                wr_post = round(s_post["wins"] / n_post * 100)
+                pnl_e_post = "✅" if s_post["pnl"] >= 0 else "❌"
+                result.append(
+                    f"total ({lbl}, {n_post}): {s_post['wins']}W/{s_post['losses']}L | "
+                    f"WR {_wr_e(wr_post)} {wr_post}% | PnL {pnl_e_post} {s_post['pnl']:+.2f}$"
+                )
         result.append("open: 1 position" if is_open else "open: no open positions")
         return result
 
@@ -1466,7 +1514,11 @@ def _build_morning_report() -> str:
     for state_path, name in live_strategies:
         s_all = live_all.get(name, {"wins": 0, "losses": 0, "pnl": 0.0})
         s_24h = live_24h.get(name, {"wins": 0, "losses": 0, "pnl": 0.0})
-        lines.extend(_fmt(name, "live", s_all, s_24h, state_path))
+        post = None
+        if name in ("SAR_ETH", "SAR_SOL"):
+            s_post = live_post.get(name, {"wins": 0, "losses": 0, "pnl": 0.0})
+            post = ("post-fix 28.06", s_post)
+        lines.extend(_fmt(name, "live", s_all, s_24h, state_path, post=post))
 
     if has_active_paper and paper_all:
         lines.append("\n<b>PAPER</b>")
