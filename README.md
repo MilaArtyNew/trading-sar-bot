@@ -1,10 +1,12 @@
 # Trading Sar Bot
 
-A trading automation project for market signals, execution support, reporting, or strategy monitoring.
+Trading bot for SAR and EMA strategy variants across BTC, ETH, SOL, and related symbols. It exposes separate start/stop/close commands per strategy and coin, plus status and trade history.
 
 ## Features
 
-- Telegram bot command handling and operational notifications.
+- Runs or controls SAR and EMA strategy variants.
+- Provides per-coin Telegram commands for BTC/ETH/SOL strategy starts, stops, and closes.
+- Tracks status and trades for operational review.
 
 ## Architecture
 
@@ -50,28 +52,28 @@ python bot.py
 
 ## Bot Commands
 
-- `/close_ema` — Project-specific command; see the bot implementation for exact behavior.
-- `/close_ema_btc` — Project-specific command; see the bot implementation for exact behavior.
-- `/close_ema_eth` — Project-specific command; see the bot implementation for exact behavior.
-- `/close_sar` — Project-specific command; see the bot implementation for exact behavior.
-- `/close_sar_btc` — Project-specific command; see the bot implementation for exact behavior.
-- `/close_sar_eth` — Project-specific command; see the bot implementation for exact behavior.
-- `/close_sar_sol` — Project-specific command; see the bot implementation for exact behavior.
-- `/start_ema` — Project-specific command; see the bot implementation for exact behavior.
-- `/start_ema_btc` — Project-specific command; see the bot implementation for exact behavior.
-- `/start_ema_eth` — Project-specific command; see the bot implementation for exact behavior.
-- `/start_sar` — Project-specific command; see the bot implementation for exact behavior.
-- `/start_sar_btc` — Project-specific command; see the bot implementation for exact behavior.
-- `/start_sar_eth` — Project-specific command; see the bot implementation for exact behavior.
-- `/start_sar_sol` — Project-specific command; see the bot implementation for exact behavior.
+- `/close_ema` — Close the EMA strategy position.
+- `/close_ema_btc` — Close the BTC EMA strategy position.
+- `/close_ema_eth` — Close the ETH EMA strategy position.
+- `/close_sar` — Close the SAR strategy position.
+- `/close_sar_btc` — Close the BTC SAR strategy position.
+- `/close_sar_eth` — Close the ETH SAR strategy position.
+- `/close_sar_sol` — Close the SOL SAR strategy position.
+- `/start_ema` — Start the EMA strategy.
+- `/start_ema_btc` — Start the BTC EMA strategy.
+- `/start_ema_eth` — Start the ETH EMA strategy.
+- `/start_sar` — Start the SAR strategy.
+- `/start_sar_btc` — Start the BTC SAR strategy.
+- `/start_sar_eth` — Start the ETH SAR strategy.
+- `/start_sar_sol` — Start the SOL SAR strategy.
 - `/status` — Show current service or strategy status.
-- `/stop_ema` — Project-specific command; see the bot implementation for exact behavior.
-- `/stop_ema_btc` — Project-specific command; see the bot implementation for exact behavior.
-- `/stop_ema_eth` — Project-specific command; see the bot implementation for exact behavior.
-- `/stop_sar` — Project-specific command; see the bot implementation for exact behavior.
-- `/stop_sar_btc` — Project-specific command; see the bot implementation for exact behavior.
-- `/stop_sar_eth` — Project-specific command; see the bot implementation for exact behavior.
-- `/stop_sar_sol` — Project-specific command; see the bot implementation for exact behavior.
+- `/stop_ema` — Stop the EMA strategy.
+- `/stop_ema_btc` — Stop the BTC EMA strategy.
+- `/stop_ema_eth` — Stop the ETH EMA strategy.
+- `/stop_sar` — Stop the SAR strategy.
+- `/stop_sar_btc` — Stop the BTC SAR strategy.
+- `/stop_sar_eth` — Stop the ETH SAR strategy.
+- `/stop_sar_sol` — Stop the SOL SAR strategy.
 - `/trades` — Show trades.
 
 If a command requires extra input and the argument is missing, the bot should ask a follow-up question instead of failing silently.
