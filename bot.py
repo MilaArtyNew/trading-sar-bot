@@ -1502,9 +1502,8 @@ def _build_morning_report() -> str:
 
     lines = ["⚡ <b>SAR BOT — DAILY REPORT</b>", "\n<b>LIVE</b>"]
 
+    # SAR, SAR_ETH отключены (2026-07-26) — не показываем в отчёте
     live_strategies = [
-        (STATE_SAR,          "SAR"),
-        (STATE_SAR_ETH_LIVE, "SAR_ETH"),
         (STATE_SAR_BTC_LIVE, "SAR_BTC"),
         (STATE_SAR_SOL_LIVE, "SAR_SOL"),
         (STATE_EMA,          "EMA"),
@@ -1546,28 +1545,6 @@ def _build_morning_report() -> str:
                 )
             else:
                 lines.append("total: no trades")
-
-    state_labels = {
-        MONITORING: "👀 мониторинг",
-        PENDING_APPROVAL: "⏳ апрув",
-        POSITION_OPEN: "📈 позиция",
-    }
-    all_states = [
-        (STATE_SAR,          "SAR"),
-        (STATE_SAR_ETH_LIVE, "SAR_ETH"),
-        (STATE_SAR_BTC_LIVE, "SAR_BTC"),
-        (STATE_SAR_SOL_LIVE, "SAR_SOL"),
-        (STATE_EMA,          "EMA"),
-        (STATE_EMA_BTC_LIVE, "EMA_BTC"),
-        (STATE_EMA_ETH_LIVE, "EMA_ETH"),
-    ]
-    sar_parts, ema_parts = [], []
-    for state_path, name in all_states:
-        st = load_state(state_path).get("state", "?")
-        label = f"{name}→{state_labels.get(st, st)}"
-        (sar_parts if name.startswith("SAR") else ema_parts).append(label)
-    lines.append(f"\nSAR: {' | '.join(sar_parts)}")
-    lines.append(f"EMA: {' | '.join(ema_parts)}")
 
     return "\n".join(lines)
 
