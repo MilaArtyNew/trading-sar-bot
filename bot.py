@@ -389,7 +389,7 @@ async def is_position_closed(symbol: str) -> bool:
 def can_open_position(symbol: str, direction: str) -> bool:
     """Return False if opening would violate position rules:
     - max 1 open/pending position per symbol
-    - max 1 open/pending position per direction (long/short)
+    - max 2 open/pending positions per direction (long/short)
     """
     # (state_path, symbol) for every live strategy
     all_strategies = [
@@ -402,6 +402,7 @@ def can_open_position(symbol: str, direction: str) -> bool:
         (STATE_EMA_ETH_LIVE, ETH_EMA_SYMBOL),
     ]
     direction_lc = direction.lower()
+    direction_count = 0
     for path, strat_symbol in all_strategies:
         try:
             s = load_state(path)
@@ -410,10 +411,12 @@ def can_open_position(symbol: str, direction: str) -> bool:
             # Same asset → block
             if strat_symbol == symbol:
                 return False
-            # Same direction → block
+            # Count same-direction positions
             pos = s.get("position") or s.get("signal") or {}
             if (pos.get("direction") or "").lower() == direction_lc:
-                return False
+                direction_count += 1
+                if direction_count >= MAX_OPEN_POSITIONS // 2:
+                    return False
         except Exception:
             pass
     return True
