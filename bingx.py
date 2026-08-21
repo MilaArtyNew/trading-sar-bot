@@ -160,6 +160,29 @@ class BingXClient:
 
         order = await self.place_market_order(symbol, side, pos_side, quantity)
 
+        # Adjust SL if slippage pushed fill price past it (BingX rejects SL on wrong side).
+        # For LONG: SL must be strictly below fill. For SHORT: strictly above fill.
+        # When invalid, place emergency SL 0.5% away from fill to preserve some protection.
+        try:
+            fill = float(order.get("data", {}).get("order", {}).get("avgPrice", 0))
+            if fill > 0:
+                if direction == "long" and sl_price >= fill:
+                    adjusted = fill * 0.995
+                    import logging
+                    logging.getLogger(__name__).warning(
+                        "SL adjusted for fill slippage: %.5f → %.5f (fill=%.5f)", sl_price, adjusted, fill
+                    )
+                    sl_price = adjusted
+                elif direction == "short" and sl_price <= fill:
+                    adjusted = fill * 1.005
+                    import logging
+                    logging.getLogger(__name__).warning(
+                        "SL adjusted for fill slippage: %.5f → %.5f (fill=%.5f)", sl_price, adjusted, fill
+                    )
+                    sl_price = adjusted
+        except Exception:
+            pass
+
         # SL and TP failures must not cancel the trade — position is already open.
         # BingX rejects TP if price moved past it between fill and order placement.
         try:
