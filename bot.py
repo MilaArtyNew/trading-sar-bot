@@ -1649,7 +1649,6 @@ def main() -> None:
         asyncio.create_task(ema_loop(application))
         asyncio.create_task(ema_btc_loop(application))
         asyncio.create_task(ema_eth_loop(application))
-        asyncio.create_task(morning_report_loop(application))
         log.info(
             "Bot started. LIVE: SAR→%s | SAR_ETH→%s | SAR_BTC→%s | SAR_SOL→%s"
             " | EMA→%s | EMA_BTC→%s | EMA_ETH→%s",
